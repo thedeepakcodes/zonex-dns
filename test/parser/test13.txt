@@ -1,0 +1,23 @@
+example.xyz	3600	IN	SOA	martha.ns.cloudflare.com. dns.cloudflare.com. 2052240926 10000 2400 604800 3600
+
+;; A Records
+example.xyz.	1	IN	A	202.35.14.16 ; My very  long comment .  whole des newline Update dns record for example.xyz cf_tags=cf-proxied:false,env:prod
+example.xyz.	1	IN	A	192.57.24.16 ; cf_tags=cf-proxied:false
+example.xyz.	1	IN	A	192.168.1.13 ; cf_tags=cf-proxied:false
+
+;; CNAME Records
+d1.example.xyz.	1	IN	CNAME	media-server-b12.pages.dev. ; cf_tags=cf-proxied:true
+d2.example.xyz.	1	IN	CNAME	media-server-2.pages.dev. ; cf_tags=cf-proxied:true
+email.mg.example.xyz.	1	IN	CNAME	mailgun.org. ; cf_tags=cf-proxied:false
+s1.example.xyz.	1	IN	CNAME	media-server-513.pages.dev. ; cf_tags=cf-proxied:true
+s2.example.xyz.	1	IN	CNAME	media-server-s2.pages.dev. ; cf_tags=cf-proxied:true
+s3.example.xyz.	1	IN	CNAME	media-server-s3.pages.dev. ; cf_tags=cf-proxied:true
+s4.example.xyz.	1	IN	CNAME	media-server-s4.pages.dev. ; cf_tags=cf-proxied:true
+s5.example.xyz.	1	IN	CNAME	media-server-s5.pages.dev. ; cf_tags=cf-proxied:true
+
+;; HTTPS Records
+example.xyz.	1	IN	HTTPS	10 example.com. alpn="h3,h2" ipv4hint="127.0.0.1" ipv6hint="::1"
+
+;; LOC Records
+example.xyz.	7200	IN	LOC	20 00 0.000 N 30 00 0.000 E 24m 20m 300m 20m ; location data ...
+example.xyz.	1	IN	LOC	25 01 20.000 N 52 05 5.000 E 5m 5m 5m 5m

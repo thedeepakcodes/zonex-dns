@@ -32,8 +32,13 @@ export const DnsTypes = [
     "RP"
 ];
 
-export const sanitize = (input: string): string[] => {
-    const records: string[] = [];
+export interface SanatizedRecord {
+    rawRecord: string;
+    comment: string;
+}
+
+export const sanitize = (input: string): SanatizedRecord[] => {
+    const records: SanatizedRecord[] = [];
     let buffer = "";
 
     const lines = input.split(/\r?\n/);
@@ -42,7 +47,9 @@ export const sanitize = (input: string): string[] => {
 
         if (!line || line.startsWith(";")) continue;
 
-        line = removeRecordComments(line)
+        const { rawRecord, comment } = removeRecordComments(line)
+
+        line = rawRecord;
 
         if (line.includes("(") && !line.includes(")")) {
             buffer += line.replace("(", "").trim() + " ";
@@ -51,7 +58,11 @@ export const sanitize = (input: string): string[] => {
 
         if (line.includes(")")) {
             buffer += line.replace(")", "").trim();
-            records.push(buffer.trim());
+            records.push({
+                rawRecord: buffer.trim(),
+                comment
+            });
+
             buffer = "";
             continue;
         }
@@ -61,24 +72,32 @@ export const sanitize = (input: string): string[] => {
             continue;
         }
 
-        records.push(line);
+        records.push({
+            rawRecord: line,
+            comment
+        });
     }
 
-    return records.map(r => r.replace(/\t/g, " "));
+    return records.map(r => ({
+        rawRecord: r.rawRecord.replace(/\t/g, " "),
+        comment: r.comment
+    }));
 };
 
-const removeRecordComments = (line: string) => {
+const removeRecordComments = (line: string): SanatizedRecord => {
     let record = "";
 
     let insideQuotes = false;
+    let comment = "";
 
-    if (!line.includes(";")) return line;
+    if (!line.includes(";")) return { rawRecord: line, comment };
 
     for (let i = 0; i < line.length; i++) {
         const char = line[i];
         const isEscaped = i > 0 && line[i - 1] === "\\";
 
         if (!insideQuotes && char === ";") {
+            comment = line.slice(i + 1).trim();
             break;
         }
 
@@ -90,10 +109,10 @@ const removeRecordComments = (line: string) => {
         }
     }
 
-    return record;
+    return { rawRecord: record, comment };
 }
 
-export const extractRawRecords = (rawRecords: string[], options?: ParseOptions): { records: DNSRecord[], origin: string, ttl: number } => {
+export const extractRawRecords = (sanatizedRecords: SanatizedRecord[], options?: ParseOptions): { records: DNSRecord[], origin: string, ttl: number } => {
     const { preserveSpacing, keepTrailingDot } = {
         preserveSpacing: true,
         keepTrailingDot: true,
@@ -107,7 +126,9 @@ export const extractRawRecords = (rawRecords: string[], options?: ParseOptions):
     let currentOrigin: string | undefined;
     let originTTL: string | undefined;
 
-    for (const rawRecord of rawRecords) {
+    for (const sanatizedRecord of sanatizedRecords) {
+        const { rawRecord, comment } = sanatizedRecord;
+
         if (rawRecord.startsWith("$")) {
             const directive = rawRecord.trim().toLowerCase();
 
@@ -127,7 +148,7 @@ export const extractRawRecords = (rawRecords: string[], options?: ParseOptions):
             ttl: "",
             class: "",
             type: "",
-            rdata: ""
+            rdata: "",
         };
 
         let insideQuotes = false;
@@ -250,18 +271,61 @@ export const extractRawRecords = (rawRecords: string[], options?: ParseOptions):
                 dnsRecord.rdata = matches?.map(s => s.slice(1, -1)).join(joinBy) ?? '';
             }
 
+            const parsedComment = parseComment(comment);
+            console.log(parsedComment);
             parsedRecords.push({
                 ...dnsRecord,
                 type: dnsRecord.type as RecordType,
                 name: recordName.toLowerCase(),
                 ttl: normalizeTtl(dnsRecord.ttl),
+                comment: parsedComment ?? undefined,
             });
         }
     }
 
     return { records: parsedRecords, origin, ttl: normalizeTtl(originTTL) };
-};
+}
 
+const parseComment = (comment: string): Record<string, any> | null => {
+    const detectProvider = () => {
+        if (comment.indexOf("cf_tags") !== -1) {
+            return "cloudflare";
+        }
+
+        return null;
+    }
+
+    const provider = detectProvider();
+
+    if (!provider) {
+        return null;
+    }
+
+    switch (provider) {
+        case "cloudflare": {
+            if (!comment.includes("cf_tags=")) return null;
+            const rawPayload = comment.split("cf_tags=")[1].split(/\s+/)[0];
+
+            if (!rawPayload) return null;
+
+            const parsed: Record<string, any> = {};
+
+            const pairs = rawPayload.split(",");
+
+            for (const pair of pairs) {
+                const [key, value] = pair.split(":");
+                if (key && value) {
+                    parsed[key.trim().toLowerCase()] = value.trim().toLowerCase();
+                }
+            }
+
+            return Object.keys(parsed).length > 0 ? parsed : null;
+        }
+
+        default:
+            return null;
+    }
+}
 
 export const normalizeTtl = (ttl: string | number | undefined): number => {
     if (!ttl) return parseInt(DEFAULT_TTL);

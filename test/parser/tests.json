@@ -310,8 +310,18 @@
         "class": "IN",
         "type": "LOC",
         "rdata": "37 46 29 N 122 25 10 W",
-        "latitude": { "degrees": 37, "minutes": 46, "seconds": 29, "hemisphere": "N" },
-        "longitude": { "degrees": 122, "minutes": 25, "seconds": 10, "hemisphere": "W" },
+        "latitude": {
+          "degrees": 37,
+          "minutes": 46,
+          "seconds": 29,
+          "hemisphere": "N"
+        },
+        "longitude": {
+          "degrees": 122,
+          "minutes": 25,
+          "seconds": 10,
+          "hemisphere": "W"
+        },
         "altitude": 0,
         "size": 1,
         "horizPrecision": 10000,
@@ -575,6 +585,24 @@
         "selector": 1,
         "matchingType": 1,
         "certAssociationData": "1234ABCD"
+      }
+    ]
+  },
+  {
+    "name": "Mixed comment with Cloudflare tags",
+    "input": "example.xyz. 1 IN A 202.35.14.16 ; My very long comment . whole des newline Update dns record for example.xyz cf_tags=cf-proxied:false,env:prod",
+    "expected": [
+      {
+        "name": "example.xyz.",
+        "ttl": 1,
+        "class": "IN",
+        "type": "A",
+        "rdata": "202.35.14.16",
+        "comment": {
+          "cf-proxied": "false",
+          "env": "prod"
+        },
+        "address": "202.35.14.16"
       }
     ]
   }

@@ -1,4 +1,4 @@
-import { DNSRecord, ParsedRecord, ParsedRecordByType, ParseOptions, RecordType } from "./types/parser.types";
+import { ParsedRecord, ParsedRecordByType, ParseOptions, RecordType } from "./types/parser.types";
 import { extractRawRecords, sanitize } from "./utils/parser.helper";
 import * as parser from "./utils/records.parser";
 
@@ -17,17 +17,17 @@ import * as parser from "./utils/records.parser";
  */
 
 export function parse(
-  input: string,
-  options?: Omit<ParseOptions, "flatten"> & { flatten?: false }
+    input: string,
+    options?: Omit<ParseOptions, "flatten"> & { flatten?: false }
 ): ParsedRecordByType;
 
 
 export function parse(
-  input: string,
-  options: Omit<ParseOptions, "flatten"> & { flatten: true }
+    input: string,
+    options: Omit<ParseOptions, "flatten"> & { flatten: true }
 ): ParsedRecord[];
 
-export function parse(input: string, options?: ParseOptions): ParsedRecordByType | ParsedRecord[]{
+export function parse(input: string, options?: ParseOptions): ParsedRecordByType | ParsedRecord[] {
     const records = sanitize(input);
 
     const { records: dnsRecords } = extractRawRecords(records, options);
