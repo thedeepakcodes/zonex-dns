@@ -598,7 +598,8 @@
         "class": "IN",
         "type": "A",
         "rdata": "202.35.14.16",
-        "comment": {
+        "comment": "My very long comment . whole des newline Update dns record for example.xyz",
+        "meta": {
           "cf-proxied": "false",
           "env": "prod"
         },

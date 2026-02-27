@@ -271,14 +271,15 @@ export const extractRawRecords = (sanatizedRecords: SanatizedRecord[], options?:
                 dnsRecord.rdata = matches?.map(s => s.slice(1, -1)).join(joinBy) ?? '';
             }
 
-            const parsedComment = parseComment(comment);
-            console.log(parsedComment);
+            const parsed = parseComment(comment);
+
             parsedRecords.push({
                 ...dnsRecord,
                 type: dnsRecord.type as RecordType,
                 name: recordName.toLowerCase(),
                 ttl: normalizeTtl(dnsRecord.ttl),
-                comment: parsedComment ?? undefined,
+                comment: parsed.comment ?? undefined,
+                meta: parsed.meta ?? undefined,
             });
         }
     }
@@ -286,45 +287,33 @@ export const extractRawRecords = (sanatizedRecords: SanatizedRecord[], options?:
     return { records: parsedRecords, origin, ttl: normalizeTtl(originTTL) };
 }
 
-const parseComment = (comment: string): Record<string, any> | null => {
-    const detectProvider = () => {
-        if (comment.indexOf("cf_tags") !== -1) {
-            return "cloudflare";
-        }
+const parseComment = (comment: string): { meta: Record<string, any> | null, comment: string | null } => {
+    let cleanComment = null;
+    let meta: Record<string, any> | null = null;
 
-        return null;
-    }
+    const cfTagsRegex = /cf_tags=([^\s]+)/i;
+    const match = comment.trim().match(cfTagsRegex);
 
-    const provider = detectProvider();
+    if (match) {
+        const rawPayload = match[1];
+        const parsed: Record<string, any> = {};
+        const pairs = rawPayload.split(",");
 
-    if (!provider) {
-        return null;
-    }
-
-    switch (provider) {
-        case "cloudflare": {
-            if (!comment.includes("cf_tags=")) return null;
-            const rawPayload = comment.split("cf_tags=")[1].split(/\s+/)[0];
-
-            if (!rawPayload) return null;
-
-            const parsed: Record<string, any> = {};
-
-            const pairs = rawPayload.split(",");
-
-            for (const pair of pairs) {
-                const [key, value] = pair.split(":");
-                if (key && value) {
-                    parsed[key.trim().toLowerCase()] = value.trim().toLowerCase();
-                }
+        for (const pair of pairs) {
+            const [key, value] = pair.split(":");
+            if (key && value) {
+                parsed[key.trim().toLowerCase()] = value.trim().toLowerCase();
             }
-
-            return Object.keys(parsed).length > 0 ? parsed : null;
         }
 
-        default:
-            return null;
+        if (Object.keys(parsed).length > 0) {
+            meta = parsed;
+        }
+
+        cleanComment = comment.trim().replace(cfTagsRegex, "").replace(/\s+/g, " ").trim();
     }
+
+    return { meta, comment: cleanComment };
 }
 
 export const normalizeTtl = (ttl: string | number | undefined): number => {

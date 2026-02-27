@@ -35,7 +35,8 @@ export interface DNSRecord {
     ttl: number;
     class: string;
     rdata: string;
-    comment?: Record<string, any>;
+    comment?: string;
+    meta?: Record<string, any>;
 }
 
 export interface ARecord extends DNSRecord {
